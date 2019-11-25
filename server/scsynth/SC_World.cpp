@@ -26,7 +26,6 @@
 #    include "../../common/SC_Apple.hpp"
 #endif
 
-
 #include "SC_World.h"
 #include "SC_WorldOptions.h"
 #include "SC_HiddenWorld.h"
@@ -1085,7 +1084,7 @@ void NodeReplyMsg::Perform() {
 
 
 void NodeEndMsg::Perform() {
-    small_scpacket packet;
+    big_scpacket packet;
     switch (mState) {
     case kNode_Go:
         packet.adds("/n_go");
@@ -1124,7 +1123,13 @@ void NodeEndMsg::Perform() {
         packet.addi(mHeadID);
         packet.addi(mTailID);
     } else {
-        packet.maketags(6);
+        int numControls = 0;
+        int numTags = 6;
+        if (mState == kNode_Info) {
+            numControls = ((Graph*)mNode)->mNumControls;
+            numTags += numControls * 2 + 2;
+        }
+        packet.maketags(numTags);
         packet.addtag(',');
         packet.addtag('i');
         packet.addtag('i');
@@ -1136,6 +1141,9 @@ void NodeEndMsg::Perform() {
         packet.addi(mPrevNodeID);
         packet.addi(mNextNodeID);
         packet.addi(mIsGroup);
+        if (mState == kNode_Info) {
+            Node_QueryControls((Node*)mNode, &packet);
+        }
     }
 
     for (auto addr : *mWorld->hw->mUsers)

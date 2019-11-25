@@ -296,71 +296,13 @@ void Group_QueryTreeAndControls(Group* inGroup, big_scpacket* packet) {
         } else {
             packet->addtag('i');
             packet->addtag('i');
-            packet->addtag('s');
             packet->addi(child->mID); // nodeID
             packet->addi(-1); // numChildren
-            packet->adds((char*)child->mDef->mName); // defName
-
-            Graph* childGraph = (Graph*)child;
-            int numControls = childGraph->mNumControls;
-            packet->addtag('i');
-            packet->addi(numControls);
-
-            char** names;
-            names = new char*[numControls];
-            int i;
-            for (i = 0; i < numControls; i++) {
-                names[i] = NULL;
-            }
-
-            // check the number of named controls and stash their names
-            GraphDef* def = (GraphDef*)(child->mDef);
-            int numNamedControls = def->mNumParamSpecs;
-            for (i = 0; i < numNamedControls; i++) {
-                ParamSpec* paramSpec = def->mParamSpecs + i;
-                names[paramSpec->mIndex] = (char*)paramSpec->mName;
-            }
-
-            // now add the names and values in index order, checking for mappings
-            for (i = 0; i < numControls; i++) {
-                float* ptr = childGraph->mControls + i;
-
-                if (names[i]) {
-                    packet->addtag('s');
-                    packet->adds(names[i]);
-                } else {
-                    packet->addtag('i');
-                    packet->addi(i);
-                }
-                // the ptr in nMapControls should be the same as the control itself, if not, it's mapped.
-                if ((childGraph->mMapControls[i]) != ptr) {
-                    // it's mapped
-                    int bus;
-                    const size_t BUF_SIZE(10);
-                    char buf[BUF_SIZE];
-                    if (childGraph->mControlRates[i] == 2) {
-                        bus = (childGraph->mMapControls[i]) - (child->mWorld->mAudioBus);
-                        bus = (int)((float)bus / child->mWorld->mBufLength);
-                        snprintf(buf, BUF_SIZE, "%c%d", 'a', bus);
-                    } else {
-                        bus = (childGraph->mMapControls[i]) - (child->mWorld->mControlBus);
-                        snprintf(buf, BUF_SIZE, "%c%d", 'c', bus);
-                    }
-                    // scprintf("bus: %d\n", bus);
-                    packet->addtag('s');
-                    packet->adds(buf);
-                } else {
-                    packet->addtag('f');
-                    packet->addf(*ptr);
-                }
-            }
-
-            delete[] names;
+            Node_QueryControls(child, packet);
         }
         child = next;
     }
 }
-
 
 void Group_DeleteAll(Group* inGroup) {
     Node* child = inGroup->mHead;

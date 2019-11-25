@@ -20,6 +20,7 @@
 
 
 #include "SC_Group.h"
+#include "SC_GraphDef.h"
 #include "SC_SynthDef.h"
 #include "SC_World.h"
 #include "SC_WorldOptions.h"
@@ -369,6 +370,7 @@ void Node_StateMsg(Node* inNode, int inState) {
         msg.mTailID = -1;
     }
     msg.mState = inState;
+    msg.mNode = inNode;
     world->hw->mNodeEnds.Write(msg);
 }
 
@@ -480,4 +482,64 @@ void Unit_DoneAction(int doneAction, Unit* unit) {
             Node_SetRun(next, 1);
     } break;
     }
+}
+
+void Node_QueryControls(Node* child, big_scpacket* packet) {
+    packet->addtag('s');
+    packet->adds((char*)child->mDef->mName); // defName
+
+    Graph* childGraph = (Graph*)child;
+    int numControls = childGraph->mNumControls;
+    packet->addtag('i');
+    packet->addi(numControls);
+
+    char** names;
+    names = new char*[numControls];
+    int i;
+    for (i = 0; i < numControls; i++) {
+        names[i] = NULL;
+    }
+
+    // check the number of named controls and stash their names
+    GraphDef* def = (GraphDef*)(child->mDef);
+    int numNamedControls = def->mNumParamSpecs;
+    for (i = 0; i < numNamedControls; i++) {
+        ParamSpec* paramSpec = def->mParamSpecs + i;
+        names[paramSpec->mIndex] = (char*)paramSpec->mName;
+    }
+
+    // now add the names and values in index order, checking for mappings
+    for (i = 0; i < numControls; i++) {
+        float* ptr = childGraph->mControls + i;
+
+        if (names[i]) {
+            packet->addtag('s');
+            packet->adds(names[i]);
+        } else {
+            packet->addtag('i');
+            packet->addi(i);
+        }
+        // the ptr in nMapControls should be the same as the control itself, if not, it's mapped.
+        if ((childGraph->mMapControls[i]) != ptr) {
+            // it's mapped
+            int bus;
+            char buf[10]; // should be long enough
+            if (childGraph->mControlRates[i] == 2) {
+                bus = (childGraph->mMapControls[i]) - (child->mWorld->mAudioBus);
+                bus = (int)((float)bus / child->mWorld->mBufLength);
+                sprintf(buf, "%c%d", 'a', bus);
+            } else {
+                bus = (childGraph->mMapControls[i]) - (child->mWorld->mControlBus);
+                sprintf(buf, "%c%d", 'c', bus);
+            }
+            // scprintf("bus: %d\n", bus);
+            packet->addtag('s');
+            packet->adds(buf);
+        } else {
+            packet->addtag('f');
+            packet->addf(*ptr);
+        }
+    }
+
+    delete[] names;
 }

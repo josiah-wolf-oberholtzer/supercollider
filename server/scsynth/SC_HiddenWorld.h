@@ -22,6 +22,7 @@
 #pragma once
 
 #include "SC_Types.h"
+#include "SC_Node.h"
 #include "SC_Rate.h"
 #include "SC_SndBuf.h"
 #include "SC_RGen.h"
@@ -73,6 +74,7 @@ struct NodeEndMsg {
     int32 mHeadID;
     int32 mTailID;
     int32 mState;
+    Node* mNode;
 
     void Perform();
 };

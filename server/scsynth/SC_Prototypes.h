@@ -140,6 +140,7 @@ void Node_StateMsg(Node* inNode, int inState);
 void Node_Trace(Node* inNode);
 void Node_SendReply(Node* inNode, int replyID, const char* cmdName, int numArgs, const float* values);
 void Node_SendReply(Node* inNode, int replyID, const char* cmdName, float value);
+void Node_QueryControls(Node* child, big_scpacket* packet);
 
 extern "C" {
 void Node_SetRun(Node* inNode, int inRun);
