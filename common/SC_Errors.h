@@ -52,5 +52,7 @@ enum {
 
     kSCErr_BufGenNotFound,
 
-    kSCErr_NumErrors
+    kSCErr_NumErrors,
+
+    kSCErr_GraphNotFound
 };

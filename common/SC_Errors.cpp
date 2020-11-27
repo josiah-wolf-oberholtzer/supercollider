@@ -42,6 +42,9 @@ void SC_ErrorString(SCErr err, char returnString[]) {
     case kSCErr_GroupNotFound:
         sprintf(returnString, "Group %i not found", gMissingNodeID);
         break;
+    case kSCErr_GraphNotFound:
+        sprintf(returnString, "Synth %i not found", gMissingNodeID);
+        break;
     case kSCErr_SynthDefNotFound:
         sprintf(returnString, "SynthDef not found");
         break;

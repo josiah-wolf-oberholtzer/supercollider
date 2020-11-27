@@ -1869,6 +1869,35 @@ SCErr meth_error(World* inWorld, int inSize, char* inData, ReplyAddress* /*inRep
     return kSCErr_None;
 }
 
+SCErr meth_s_query(World* inWorld, int inSize, char* inData, ReplyAddress* inReply);
+SCErr meth_s_query(World* inWorld, int inSize, char* inData, ReplyAddress* inReply) {
+    sc_msg_iter msg(inSize, inData);
+
+    while (msg.remain()) {
+        big_scpacket packet;
+        Node* node = Msg_GetNode(inWorld, msg);
+
+        if (!node)
+            return kSCErr_NodeNotFound;
+        if (node->mIsGroup) {
+            gMissingNodeID = node->mID;
+            return kSCErr_GraphNotFound;
+        }
+
+        Graph* graph = (Graph*)node;
+
+        packet.adds("/s_info");
+        packet.maketags(graph->mNumControls * 2 + 3); // nodeID, def, numControls, name and value for each
+        packet.addtag(',');
+        packet.addtag('i');
+        packet.addi(node->mID); // nodeID
+        Graph_QueryControls(node, &packet);
+
+        CallSequencedCommand(SendReplyCmd, inWorld, packet.size(), packet.data(), inReply);
+    }
+    return kSCErr_None;
+}
+
 #define NEW_COMMAND(name) NewCommand(#name, cmd_##name, meth_##name)
 
 void initMiscCommands();
@@ -1957,4 +1986,6 @@ void initMiscCommands() {
     NEW_COMMAND(g_queryTree);
 
     NEW_COMMAND(error);
+
+    NEW_COMMAND(s_query);
 }

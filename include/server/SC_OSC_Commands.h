@@ -111,5 +111,7 @@ enum {
 
     cmd_version = 64,
 
-    NUMBER_OF_COMMANDS = 65
+    cmd_s_query = 65,
+
+    NUMBER_OF_COMMANDS = 66
 };

@@ -617,3 +617,64 @@ void Graph_MapAudioControl(Graph* inGraph, uint32 inIndex, uint32 inBus) {
         inGraph->mMapControls[inIndex] = world->mAudioBus + (inBus * world->mBufLength);
     }
 }
+
+void Graph_QueryControls(Node* node, big_scpacket* packet) {
+    packet->addtag('s');
+    packet->adds((char*)node->mDef->mName); // defName
+
+    Graph* graph = (Graph*)node;
+    int numControls = graph->mNumControls;
+    packet->addtag('i');
+    packet->addi(numControls);
+
+    char** names;
+    names = new char*[numControls];
+    int i;
+    for (i = 0; i < numControls; i++) {
+        names[i] = nullptr;
+    }
+
+    // check the number of named controls and stash their names
+    GraphDef* def = (GraphDef*)(node->mDef);
+    int numNamedControls = def->mNumParamSpecs;
+    for (i = 0; i < numNamedControls; i++) {
+        ParamSpec* paramSpec = def->mParamSpecs + i;
+        names[paramSpec->mIndex] = (char*)paramSpec->mName;
+    }
+
+    // now add the names and values in index order, checking for mappings
+    for (i = 0; i < numControls; i++) {
+        float* ptr = graph->mControls + i;
+
+        if (names[i]) {
+            packet->addtag('s');
+            packet->adds(names[i]);
+        } else {
+            packet->addtag('i');
+            packet->addi(i);
+        }
+        // the ptr in nMapControls should be the same as the control itself, if not, it's mapped.
+        if ((graph->mMapControls[i]) != ptr) {
+            // it's mapped
+            int bus;
+            const size_t BUF_SIZE(10);
+            char buf[BUF_SIZE];
+            if (graph->mControlRates[i] == 2) {
+                bus = (graph->mMapControls[i]) - (node->mWorld->mAudioBus);
+                bus = (int)((float)bus / node->mWorld->mBufLength);
+                snprintf(buf, BUF_SIZE, "%c%d", 'a', bus);
+            } else {
+                bus = (graph->mMapControls[i]) - (node->mWorld->mControlBus);
+                snprintf(buf, BUF_SIZE, "%c%d", 'c', bus);
+            }
+            // scprintf("bus: %d\n", bus);
+            packet->addtag('s');
+            packet->adds(buf);
+        } else {
+            packet->addtag('f');
+            packet->addf(*ptr);
+        }
+    }
+
+    delete[] names;
+}

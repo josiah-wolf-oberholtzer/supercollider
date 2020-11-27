@@ -119,6 +119,7 @@ void Graph_MapControl(Graph* inGraph, int32 inHash, int32* inName, uint32 inInde
 void Graph_MapAudioControl(Graph* inGraph, uint32 inIndex, uint32 inBus);
 void Graph_MapAudioControl(Graph* inGraph, int32 inHash, int32* inName, uint32 inIndex, uint32 inBus);
 void Graph_Trace(Graph* inGraph);
+void Graph_QueryControls(Node* node, big_scpacket* packet);
 
 ////////////////////////////////////////////////////////////////////////
 
