@@ -1872,6 +1872,60 @@ template <bool realtime> void handle_s_getn(ReceivedMessage const& msg, size_t m
     cmd_dispatcher<realtime>::fire_message(endpoint, std::move(message));
 }
 
+template <bool realtime> void handle_s_query(ReceivedMessage const& msg, endpoint_ptr endpoint) {
+    osc::ReceivedMessageArgumentStream args = msg.ArgumentStream();
+
+    while (!args.Eos()) {
+        osc::int32 node_id;
+        args >> node_id;
+
+        server_node* node = find_node(node_id);
+        if (!node || !node->is_synth())
+            continue;
+
+        sc_synth const& scsynth = static_cast<sc_synth const&>(*node);
+        osc::int32 controls = scsynth.mNumControls;
+
+        size_t max_msg_size = 1 << 16;
+        for (;;) {
+            try {
+                if (max_msg_size > 1 << 22)
+                    return;
+
+                sized_array<char, rt_pool_allocator<char>> data(max_msg_size);
+                osc::OutboundPacketStream p(data.c_array(), max_msg_size);
+
+                p << osc::BeginMessage("/s_info");
+                p << node->id();
+                p << scsynth.definition_name();
+                p << controls;
+
+                for (int i = 0; i != controls; ++i) {
+                    const char* name_of_slot = scsynth.name_of_slot(i);
+                    if (name_of_slot)
+                        p << name_of_slot;
+                    else
+                        p << osc::int32(i);
+
+                    char str[10];
+                    if (scsynth.getMappedSymbol(i, str))
+                        p << str;
+                    else
+                        p << scsynth.mControls[i];
+                }
+
+                p << osc::EndMessage;
+
+                movable_array<char> message(p.Size(), p.Data());
+                cmd_dispatcher<realtime>::fire_message(endpoint, std::move(message));
+                return;
+            } catch (...) {
+                max_msg_size *= 2; /* if we run out of memory, retry with doubled memory resources */
+            }
+        }
+    }
+}
+
 
 /** wrapper class for osc completion message
  */
@@ -3211,6 +3265,10 @@ void sc_osc_handler::handle_message_int_address(ReceivedMessage const& message, 
         handle_version<realtime>(endpoint);
         break;
 
+    case cmd_s_query:
+        handle_s_query<realtime>(message, endpoint);
+        break;
+
     default:
         handle_unhandled_message(message);
     }
@@ -3498,6 +3556,12 @@ void dispatch_synth_commands(const char* address, ReceivedMessage const& message
         handle_s_getn<realtime>(message, msg_size, endpoint);
         return;
     }
+
+    if (strcmp(address + 3, "query") == 0) {
+        handle_s_query<realtime>(message, endpoint);
+        return;
+    }
+
 }
 
 } /* namespace */
