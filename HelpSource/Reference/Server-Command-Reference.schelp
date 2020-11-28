@@ -410,6 +410,25 @@ table::
 
 This command is used when the client no longer needs to communicate with the synth and wants to have the freedom to reuse the ID. The server will reassign this synth to a reserved negative number. This command is purely for bookkeeping convenience of the client. No notification is sent when this occurs.
 
+subsection:: /s_query
+Get info about a synth.
+table::
+## N * strong::int:: || synth ID
+::
+
+Responds to the sender with a strong::/s_info:: message for each synth. The arguments to strong::/s_info:: are as follows:
+table::
+## N * || table::
+    ## strong::int:: || synth ID
+    ## strong::string:: || SynthDef name
+    ## strong::int:: || number of controls for this synth (M)
+    ## M * || table::
+        ## strong::symbol:: or strong::int:: || a control name or index
+        ## strong::float:: or strong::symbol:: || value or control bus mapping symbol (e.g. 'c1')
+        ::
+    ::
+::
+
 section:: Group Commands
 
 subsection:: /g_new
@@ -1118,7 +1137,9 @@ enum {
 
     cmd_version = 64,
 
-    NUMBER_OF_COMMANDS = 65
+    cmd_s_query = 65,
+
+    NUMBER_OF_COMMANDS = 66
 };
 ::
 
